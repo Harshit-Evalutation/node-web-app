@@ -1,0 +1,24 @@
+<div class="flex flex-col items-center justify-center min-h-96 text-center space-y-6 py-20">
+  <div class="w-20 h-20 rounded-3xl bg-[#111827] border border-white/10 flex items-center justify-center mx-auto">
+    <span class="text-4xl"><% if (status === 404) { %>🔍<% } else { %>⚠️<% } %></span>
+  </div>
+  <div>
+    <h1 class="text-6xl font-black text-white mb-3"><%= status %></h1>
+    <p class="text-xl font-semibold text-gray-300 mb-2"><%= message %></p>
+    <p class="text-gray-500 text-sm max-w-md mx-auto">
+      <% if (status === 404) { %>The page you're looking for doesn't exist.<% } else { %>Something went wrong on our end.<% } %>
+    </p>
+  </div>
+  <div class="flex gap-3">
+    <a href="/" class="btn-primary px-6 py-2.5">Back to Dashboard</a>
+    <button onclick="window.history.back()" class="btn-secondary px-6 py-2.5">Go Back</button>
+  </div>
+  <% if (typeof stack !== 'undefined' && stack) { %>
+    <div class="mt-4 w-full max-w-2xl text-left">
+      <details>
+        <summary class="text-xs text-gray-600 cursor-pointer hover:text-gray-400">Stack trace</summary>
+        <pre class="mt-2 text-xs font-mono text-gray-500 bg-[#080b14] p-4 rounded-xl overflow-auto border border-white/5"><%= stack %></pre>
+      </details>
+    </div>
+  <% } %>
+</div>

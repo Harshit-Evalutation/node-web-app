@@ -1,0 +1,204 @@
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Service Monitoring</h1>
+      <p class="page-desc">Real-time service registry, health checks, and performance telemetry.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <% var healthyCount = services.filter(function(s){return s.status==='healthy'}).length; %>
+      <% var downCount    = services.filter(function(s){return s.status==='down'}).length; %>
+      <span class="badge badge-success"><%= healthyCount %> healthy</span>
+      <% if (downCount > 0) { %>
+        <span class="badge badge-error"><%= downCount %> down</span>
+      <% } %>
+      <span class="badge badge-muted"><%= services.length %> total</span>
+    </div>
+  </div>
+
+  <!-- Services Table -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Service Registry</h2>
+      <span class="card-subtitle">Auto-refreshed every 30s via /api/services</span>
+    </div>
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Uptime</th>
+            <th>Latency</th>
+            <th>Throughput</th>
+            <th>Error Rate</th>
+            <th>CPU</th>
+            <th>Memory</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% services.forEach(function(svc) { %>
+            <tr>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="status-dot <%= svc.status === 'healthy' ? 'healthy' : svc.status === 'warning' ? 'warning' : svc.status === 'restarting' ? 'restarting' : 'down' %>"></div>
+                  <strong style="color: var(--text-primary); font-size: 12px;"><%= svc.name %></strong>
+                </div>
+              </td>
+              <td>
+                <span class="text-mono" style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;"><%= svc.type %></span>
+              </td>
+              <td>
+                <span class="badge <%= svc.status === 'healthy' ? 'badge-success' : svc.status === 'warning' ? 'badge-warning' : svc.status === 'restarting' ? 'badge-info' : 'badge-error' %>"
+                      data-service-status="<%= svc.id %>"
+                      style="font-size: 10px;">
+                  <%= svc.status %>
+                </span>
+              </td>
+              <td class="text-mono" style="font-size: 11px; color: var(--success);"><%= svc.uptime %></td>
+              <td class="text-mono" style="font-size: 11px;"><%= svc.responseTime %></td>
+              <td class="text-mono" style="font-size: 11px; color: var(--text-secondary);"><%= svc.requests %></td>
+              <td class="text-mono" style="font-size: 11px; color: <%= parseFloat(svc.errorRate) > 1 ? 'var(--error)' : 'var(--text-muted)' %>;"><%= svc.errorRate %></td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="progress-bar" style="width: 44px; margin-top: 0;">
+                    <div class="progress-fill <%= svc.metrics.cpu > 70 ? 'error' : 'info' %>" style="width: <%= Math.min(svc.metrics.cpu, 100) %>%"></div>
+                  </div>
+                  <span class="text-mono" style="font-size: 10px;"><%= svc.metrics.cpu %>%</span>
+                </div>
+              </td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="progress-bar" style="width: 44px; margin-top: 0;">
+                    <div class="progress-fill <%= svc.metrics.memory > 80 ? 'error' : 'warning' %>" style="width: <%= Math.min(svc.metrics.memory, 100) %>%"></div>
+                  </div>
+                  <span class="text-mono" style="font-size: 10px;"><%= svc.metrics.memory %>%</span>
+                </div>
+              </td>
+              <td>
+                <div class="flex gap-1 justify-end">
+                  <button class="btn btn-sm"
+                          id="view-svc-<%= svc.id %>"
+                          onclick="viewServiceDetails('<%= svc.id %>','<%= svc.name %>','<%= svc.type %>','<%= svc.uptime %>','<%= svc.responseTime %>','<%= svc.requests %>','<%= svc.metrics.cpu %>','<%= svc.metrics.memory %>')">
+                    Details
+                  </button>
+                  <button class="btn btn-sm btn-secondary"
+                          id="restart-svc-<%= svc.id %>"
+                          onclick="restartService('<%= svc.id %>', '<%= svc.name %>')">
+                    Restart
+                  </button>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Telemetry Charts -->
+  <div class="grid grid-cols-2 gap-6">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">CPU Load (24h)</h2>
+        <span class="card-subtitle"><%= metrics.summary.cpu.current %>% current</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="cpuChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Memory Allocation (24h)</h2>
+        <span class="card-subtitle">Used: <%= metrics.summary.ram.used %> / <%= metrics.summary.ram.total %></span>
+      </div>
+      <div class="chart-container">
+        <canvas id="ramChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Network Traffic (24h)</h2>
+        <span class="card-subtitle">Total: <%= metrics.summary.network.total %></span>
+      </div>
+      <div class="chart-container">
+        <canvas id="networkChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Request Rate (24h)</h2>
+        <span class="card-subtitle">Throughput metrics</span>
+      </div>
+      <div class="chart-container">
+        <canvas id="requestChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const chartLabels  = <%- JSON.stringify(metrics.labels) %>;
+  const cpuData      = <%- JSON.stringify(metrics.cpu) %>;
+  const ramData      = <%- JSON.stringify(metrics.ram) %>;
+  const networkData  = <%- JSON.stringify(metrics.network) %>;
+  const requestData  = <%- JSON.stringify(metrics.requests) %>;
+
+  const baseOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { intersect: false, mode: 'index' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#111111',
+        borderColor: '#262626',
+        borderWidth: 1,
+        titleColor: '#71717A',
+        bodyColor: '#FAFAFA',
+        titleFont: { family: 'JetBrains Mono', size: 10 },
+        bodyFont:  { family: 'JetBrains Mono', size: 11 },
+        padding: 10,
+      },
+    },
+    scales: {
+      x: {
+        grid: { color: 'rgba(255,255,255,0.03)' },
+        ticks: { color: '#52525B', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 8 },
+      },
+      y: {
+        grid: { color: 'rgba(255,255,255,0.03)' },
+        ticks: { color: '#52525B', font: { family: 'JetBrains Mono', size: 9 } },
+        min: 0,
+      },
+    },
+  };
+
+  function mkChart(id, data, color) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx  = canvas.getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartLabels,
+        datasets: [{ data, borderColor: color, backgroundColor: 'transparent', borderWidth: 1.5, fill: false, tension: 0.1, pointRadius: 0, pointHoverRadius: 3 }],
+      },
+      options: baseOpts,
+    });
+  }
+
+  mkChart('cpuChart',     cpuData,     '#FAFAFA');
+  mkChart('ramChart',     ramData,     '#D4D4D8');
+  mkChart('networkChart', networkData, '#A1A1AA');
+  mkChart('requestChart', requestData, '#71717A');
+});
+</script>

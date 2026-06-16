@@ -1,0 +1,41 @@
+{
+  "name": "devops-command-center",
+  "version": "1.0.0",
+  "description": "A production-ready DevOps dashboard for monitoring applications, deployments, services, containers, and CI/CD activity",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": [
+    "devops",
+    "dashboard",
+    "monitoring",
+    "containers",
+    "deployments",
+    "nodejs"
+  ],
+  "author": "DevOps Command Center",
+  "license": "MIT",
+  "dependencies": {
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-ejs-layouts": "^2.5.1",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "moment": "^2.29.4",
+    "morgan": "^1.10.0",
+    "uuid": "^9.0.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

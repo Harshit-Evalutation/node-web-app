@@ -1,0 +1,78 @@
+<div style="display: flex; flex-direction: column; gap: 20px;">
+
+  <!-- Page Header -->
+  <div class="flex justify-between items-center flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 20px;">Log Aggregation Viewer</h1>
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">Centralized stdout/stderr streams from active containers and clusters.</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <!-- Live tail trigger -->
+      <button id="live-tail-btn" class="btn btn-primary" onclick="toggleLiveTail()">
+        Start Live Tail
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters Dashboard Panel -->
+  <div class="card">
+    <div class="flex items-center gap-3 flex-wrap">
+      <div class="flex-1" style="min-width: 200px; position: relative;">
+        <input type="text" id="client-search" placeholder="Type logs query regex or search term..." value="<%= filters.search %>" class="form-control w-full form-control-mono" style="padding-left: 10px;" />
+      </div>
+      
+      <select id="client-level" class="form-control form-control-mono">
+        <option value="ALL" <%= filters.level === 'ALL' ? 'selected' : '' %>>ALL LEVELS</option>
+        <option value="INFO" <%= filters.level === 'INFO' ? 'selected' : '' %>>INFO</option>
+        <option value="WARN" <%= filters.level === 'WARN' ? 'selected' : '' %>>WARN</option>
+        <option value="ERROR" <%= filters.level === 'ERROR' ? 'selected' : '' %>>ERROR</option>
+        <option value="DEBUG" <%= filters.level === 'DEBUG' ? 'selected' : '' %>>DEBUG</option>
+      </select>
+
+      <a href="/logs" class="btn btn-secondary text-mono">RESET FILTER</a>
+    </div>
+  </div>
+
+  <!-- Terminal Emulator Layout -->
+  <div class="terminal">
+    <div class="terminal-header">
+      <div class="terminal-dots">
+        <div class="terminal-dot dot-close"></div>
+        <div class="terminal-dot dot-minimize"></div>
+        <div class="terminal-dot dot-maximize"></div>
+      </div>
+      <div class="terminal-title">cluster-node-daemon-logs ~ syslog-tail</div>
+      <div class="flex items-center gap-2" style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);">
+        <div class="status-dot healthy animate-pulse"></div>
+        <span>DAEMON LISTENING</span>
+      </div>
+    </div>
+
+    <!-- Terminal Output console -->
+    <div class="terminal-body" id="terminal-body" style="height: 480px;">
+      <% if (logs.length === 0) { %>
+        <div style="color: var(--text-muted); text-align: center; padding: 40px 0;">NO LOGTELEMETRY RECEIVED ON STDIN</div>
+      <% } else { %>
+        <% logs.forEach(function(log) { %>
+          <div class="log-row">
+            <span class="log-timestamp"><%= log.timestamp %></span>
+            <span class="log-level <%= log.level.toLowerCase() %>"><%= log.level %></span>
+            <span class="log-service"><%= log.service %></span>
+            <span class="log-message"><%= log.message %></span>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Initial scroll terminal to bottom
+    const term = document.getElementById('terminal-body');
+    if (term) {
+      term.scrollTop = term.scrollHeight;
+    }
+  });
+</script>

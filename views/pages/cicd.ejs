@@ -1,0 +1,259 @@
+<div style="display: flex; flex-direction: column; gap: 20px;">
+
+  <!-- Page Header -->
+  <div class="flex justify-between items-center flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 20px;">CI/CD Pipeline Run Activity</h1>
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">Continuous Integration workflow status, test stages, and deployment logs.</p>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <button class="btn btn-primary" onclick="openTriggerPipelineModal()">Trigger Pipeline</button>
+      <% var runningCount = pipelines.filter(function(p){return p.status==='running'}).length; %>
+      <% if (runningCount > 0) { %>
+        <span class="badge badge-info animate-pulse"><%= runningCount %> workflow executing</span>
+      <% } else { %>
+        <span class="badge badge-muted">No active executions</span>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="grid grid-cols-4 gap-4">
+    <div class="stat-card">
+      <span class="stat-title">Workflow Runs</span>
+      <div class="stat-value"><%= pipelines.length %></div>
+      <div class="stat-footer">Total pipelines monitored</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Runs Succeeded</span>
+      <div class="stat-value" style="color: var(--success);"><%= pipelines.filter(function(p){return p.status==='success'}).length %></div>
+      <div class="stat-footer">Zero status failure exits</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Runs Failed</span>
+      <div class="stat-value" style="color: var(--error);"><%= pipelines.filter(function(p){return p.status==='failed'}).length %></div>
+      <div class="stat-footer">Exit status code mismatches</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Active Running</span>
+      <div class="stat-value" style="color: var(--info);"><%= pipelines.filter(function(p){return p.status==='running'}).length %></div>
+      <div class="stat-footer">Resource runner nodes</div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="grid grid-cols-2 gap-6">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Pipeline Duration Trend</h2>
+        <span class="card-subtitle">Last 10 executions</span>
+      </div>
+      <div class="chart-container" style="height: 180px;">
+        <canvas id="durationChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Success Rate Trend</h2>
+        <span class="card-subtitle">Rolling 24h window</span>
+      </div>
+      <div class="chart-container" style="height: 180px;">
+        <canvas id="successRateChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global GitHub Actions Pipeline Diagram -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">GitHub Actions Deployment Workflow Template</h2>
+      <span class="card-subtitle">Visual workflow stage connections (main branch)</span>
+    </div>
+    
+    <div class="pipeline-container">
+      <div class="pipeline-node success">
+        <div class="node-status-icon success">✓</div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);">Source Code</div>
+          <div class="text-mono" style="font-size: 9px; color: var(--text-muted);">2s check</div>
+        </div>
+      </div>
+      <div class="pipeline-line"></div>
+      
+      <div class="pipeline-node success">
+        <div class="node-status-icon success">✓</div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);">Build Stage</div>
+          <div class="text-mono" style="font-size: 9px; color: var(--text-muted);">1m 42s</div>
+        </div>
+      </div>
+      <div class="pipeline-line"></div>
+      
+      <div class="pipeline-node success">
+        <div class="node-status-icon success">✓</div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);">Test Stage</div>
+          <div class="text-mono" style="font-size: 9px; color: var(--text-muted);">58s check</div>
+        </div>
+      </div>
+      <div class="pipeline-line"></div>
+      
+      <div class="pipeline-node success">
+        <div class="node-status-icon success">✓</div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);">Docker Build</div>
+          <div class="text-mono" style="font-size: 9px; color: var(--text-muted);">1m 12s</div>
+        </div>
+      </div>
+      <div class="pipeline-line"></div>
+      
+      <div class="pipeline-node success">
+        <div class="node-status-icon success">✓</div>
+        <div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);">Deployment</div>
+          <div class="text-mono" style="font-size: 9px; color: var(--text-muted);">29s sync</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipelines Runs List -->
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <h2 style="font-size: 14px; font-weight: 600; color: var(--text-primary);">Workflow Run History</h2>
+    
+    <% pipelines.forEach(function(pipe) { %>
+      <div class="card">
+        <div class="flex justify-between items-start flex-wrap gap-4 mb-4" style="border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+          <div>
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <strong style="color: var(--text-primary); font-size: 13px;"><%= pipe.name %></strong>
+              <span class="badge <%= pipe.status === 'success' ? 'badge-success' : pipe.status === 'running' ? 'badge-info animate-pulse' : 'badge-error' %>" style="font-size: 9px; padding: 1px 6px; text-transform: uppercase;">
+                <%= pipe.status %>
+              </span>
+              <span class="env-tag env-production" style="font-size: 9px; text-transform: lowercase;">#<%= pipe.id %></span>
+            </div>
+            
+            <div style="font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 4px;">
+              branch: <strong style="color: var(--text-secondary);"><%= pipe.branch %></strong> · 
+              commit: <span style="color: var(--info);"><%= pipe.commit %></span> · 
+              "<%= pipe.commitMsg %>"
+            </div>
+          </div>
+
+          <div style="text-align: right; font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+            <div>Duration: <strong style="color: var(--text-secondary); font-family: var(--font-mono);"><%= pipe.duration %></strong></div>
+            <div>Triggered: <%= pipe.timeAgo %> by <strong style="color: var(--text-secondary);"><%= pipe.author %></strong></div>
+          </div>
+        </div>
+
+        <!-- Render specific visual nodes for this pipeline run -->
+        <div style="font-size: 10px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 10px;">Workflow Execution Stages</div>
+        <div class="pipeline-container" style="background-color: #0b0b0b; border: 1px solid var(--border); border-radius: 4px; padding: 12px;">
+          <% pipe.stages.forEach(function(stage, sIdx) { %>
+            <div class="pipeline-node <%= stage.status %>" style="background-color: var(--surface);">
+              <div class="node-status-icon <%= stage.status %>">
+                <% if (stage.status === 'success') { %>✓
+                <% } else if (stage.status === 'failed') { %>✗
+                <% } else if (stage.status === 'running') { %>●
+                <% } else { %>-
+                <% } %>
+              </div>
+              <div>
+                <div style="font-size: 11px; font-weight: 600; color: var(--text-primary);"><%= stage.name %></div>
+                <div class="text-mono" style="font-size: 9px; color: var(--text-muted);"><%= stage.duration %></div>
+              </div>
+            </div>
+            <% if (sIdx < pipe.stages.length - 1) { %>
+              <div class="pipeline-line"></div>
+            <% } %>
+          <% }); %>
+        </div>
+      </div>
+    <% }); %>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const metrics = <%- JSON.stringify(cicdMetrics || {}) %>;
+    if (!metrics.labels) return;
+
+    const baseOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111111',
+          borderColor: '#262626',
+          borderWidth: 1,
+          titleColor: '#A1A1AA',
+          bodyColor: '#FAFAFA',
+          titleFont: { family: 'JetBrains Mono', size: 10 },
+          bodyFont:  { family: 'JetBrains Mono', size: 11 },
+          padding: 10,
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 7 },
+        },
+        y: {
+          grid: { color: '#262626' },
+          ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 } },
+        },
+      },
+    };
+
+    const durCtx = document.getElementById('durationChart');
+    if (durCtx) {
+      new Chart(durCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: metrics.labels,
+          datasets: [{
+            label: 'Duration (s)',
+            data: metrics.durations,
+            borderColor: '#FAFAFA',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            tension: 0.1,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+          }]
+        },
+        options: baseOpts
+      });
+    }
+
+    const srCtx = document.getElementById('successRateChart');
+    if (srCtx) {
+      new Chart(srCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: Array.from({length: 24}, (_, i) => `T-${23-i}h`),
+          datasets: [{
+            label: 'Success %',
+            data: metrics.successRate,
+            borderColor: '#A1A1AA',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            tension: 0.1,
+            pointRadius: 0,
+          }]
+        },
+        options: {
+          ...baseOpts,
+          scales: {
+            ...baseOpts.scales,
+            y: { ...baseOpts.scales.y, min: 80, max: 100 }
+          }
+        }
+      });
+    }
+  });
+</script>

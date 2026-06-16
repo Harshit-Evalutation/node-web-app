@@ -1,0 +1,26 @@
+<header class="topbar">
+  <div class="topbar-breadcrumb">
+    <strong>OpsCenter</strong>
+    <span class="topbar-separator">/</span>
+    <span class="topbar-sub">
+      <% if (page === 'dashboard') { %>Overview
+      <% } else if (page === 'cicd') { %>CI/CD Pipeline
+      <% } else if (page === 'logs') { %>Log Viewer
+      <% } else { %><%= page.charAt(0).toUpperCase() + page.slice(1) %><% } %>
+    </span>
+    <span style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); background: var(--surface-elevated); border: 1px solid var(--border); padding: 1px 6px; border-radius: 3px; text-transform: uppercase;">
+      <%= activeEnv %>
+    </span>
+  </div>
+
+  <div class="topbar-actions">
+    <div class="live-indicator">
+      <div class="pulse-dot"></div>
+      <span>LIVE</span>
+    </div>
+    <div class="clock-display">
+      <span id="current-time"></span>
+      <span id="current-date" style="display: block; font-size: 9px; color: var(--text-muted);"></span>
+    </div>
+  </div>
+</header>

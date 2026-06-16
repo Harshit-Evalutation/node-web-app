@@ -1,0 +1,13 @@
+<footer class="footer">
+  <div>
+    © 2026 <span style="color: var(--text-secondary); font-weight: 500;">OpsCenter</span>
+    <span style="margin: 0 8px; color: var(--text-faint);">·</span>
+    v<%= appVersion %> (<%= nodeEnv %>)
+  </div>
+  <div class="footer-links">
+    <a href="/health">Health</a>
+    <a href="/api/health">API</a>
+    <a href="/api/dashboard">Dashboard API</a>
+    <span style="font-family: var(--font-mono); font-size: 10px;">Node <%= process?.version || 'v18' %></span>
+  </div>
+</footer>

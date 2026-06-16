@@ -1,0 +1,129 @@
+<%
+  var resolvedIncidents = incidents.filter(function(i) { return i.status === 'resolved' && i.duration; });
+  var totalMinutes = 0;
+  resolvedIncidents.forEach(function(i) {
+    var d = i.duration.toLowerCase();
+    var mins = 0;
+    if (d.indexOf('h') > -1) {
+      var parts = d.split('h');
+      mins += parseInt(parts[0].trim(), 10) * 60;
+      if (parts[1]) {
+        mins += parseInt(parts[1].replace('m', '').replace('inutes', '').replace('in', '').trim(), 10) || 0;
+      }
+    } else {
+      mins += parseInt(d.replace('minutes', '').replace('minute', '').replace('m', '').replace('in', '').trim(), 10) || 0;
+    }
+    totalMinutes += mins;
+  });
+  var mttr = resolvedIncidents.length > 0 ? Math.round(totalMinutes / resolvedIncidents.length) : 0;
+%>
+<div style="display: flex; flex-direction: column; gap: 20px;">
+
+  <!-- Page Header -->
+  <div class="flex justify-between items-center flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 20px;">Incident Center</h1>
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">Active service disruptions, MTTR metrics, and post-mortem resolution workflows.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="badge badge-error"><%= incidents.filter(function(i){return i.status!=='resolved'}).length %> Active</span>
+      <span class="badge badge-success"><%= incidents.filter(function(i){return i.status==='resolved'}).length %> Resolved</span>
+    </div>
+  </div>
+
+  <!-- Summary metrics -->
+  <div class="grid grid-cols-4 gap-4">
+    <div class="stat-card" style="border-left: 3px solid var(--error);">
+      <span class="stat-title">Critical Outages</span>
+      <div class="stat-value" style="color: var(--error);"><%= incidents.filter(function(i){return i.severity==='critical'}).length %></div>
+      <div class="stat-footer">Immediate response required</div>
+    </div>
+    <div class="stat-card" style="border-left: 3px solid var(--text-secondary);">
+      <span class="stat-title">High Severity</span>
+      <div class="stat-value" style="color: var(--text-secondary);"><%= incidents.filter(function(i){return i.severity==='high'}).length %></div>
+      <div class="stat-footer">Service degradation</div>
+    </div>
+    <div class="stat-card" style="border-left: 3px solid var(--warning);">
+      <span class="stat-title">Medium Severity</span>
+      <div class="stat-value" style="color: var(--warning);"><%= incidents.filter(function(i){return i.severity==='medium'}).length %></div>
+      <div class="stat-footer">Non-critical warnings</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Mean Time to Resolve</span>
+      <div class="stat-value" style="color: var(--info);"><%= mttr %> min</div>
+      <div class="stat-footer">Cluster running MTTR average</div>
+    </div>
+  </div>
+
+  <!-- Incident Cards Registry -->
+  <div class="flex flex-col gap-4">
+    <% incidents.forEach(function(inc) { %>
+      <div class="card" style="border-left: 3px solid <%= inc.severity === 'critical' ? 'var(--error)' : inc.severity === 'high' ? 'var(--text-secondary)' : 'var(--warning)' %>;">
+        <div class="flex justify-between items-start flex-wrap gap-4 mb-3">
+          <div>
+            <div class="flex items-center gap-3 mb-1">
+              <span class="text-mono" style="font-size: 11px; font-weight: 600; color: var(--text-primary);"><%= inc.id %></span>
+              <span class="badge <%= inc.severity === 'critical' ? 'badge-error' : inc.severity === 'high' ? 'badge-warning' : 'badge-muted' %>" 
+                    style="font-size: 9px; padding: 1px 6px; text-transform: uppercase;">
+                <%= inc.severity %>
+              </span>
+              <span class="badge <%= inc.status === 'resolved' ? 'badge-success' : inc.status === 'investigating' ? 'badge-info' : 'badge-warning' %>" 
+                    data-incident-status="<%= inc.id %>"
+                    style="font-size: 9px; padding: 1px 6px; text-transform: uppercase;">
+                <%= inc.status %>
+              </span>
+              <span class="env-tag env-<%= inc.environment %>" style="font-size: 9px;"><%= inc.environment %></span>
+            </div>
+            <h3 style="font-size: 14px; color: var(--text-primary);"><%= inc.title %></h3>
+          </div>
+          <div style="text-align: right; font-size: 11px; color: var(--text-muted);">
+            <div><%= inc.timestamp %></div>
+            <div class="mt-1"><%= inc.timeAgo %></div>
+          </div>
+        </div>
+
+        <p style="color: var(--text-secondary); font-size: 12px; margin-bottom: 12px;"><%= inc.description %></p>
+
+        <!-- Dynamic Post Mortem Resolution & Details Area -->
+        <div style="background-color: #0b0b0b; border: 1px solid var(--border); border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+          <div class="grid grid-cols-3 gap-2" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+            <div>
+              <div style="font-size: 9px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Owner / Assignee</div>
+              <div style="font-size: 11px; color: var(--text-primary); font-family: var(--font-mono); margin-top: 2px;"><%= inc.assignee %></div>
+            </div>
+            <div>
+              <div style="font-size: 9px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Affected Service</div>
+              <div style="font-size: 11px; color: var(--text-primary); margin-top: 2px;"><%= inc.service %></div>
+            </div>
+            <div>
+              <div style="font-size: 9px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Outage Duration</div>
+              <div style="font-size: 11px; color: var(--text-primary); font-family: var(--font-mono); margin-top: 2px;"><%= inc.duration %></div>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 9px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Root Cause Diagnostic</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4;"><%= inc.rootCause || 'Under active analysis' %></div>
+          </div>
+
+          <% if (inc.resolutionNotes) { %>
+            <div style="border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 4px;">
+              <div style="font-size: 9px; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Resolution Plan Notes</div>
+              <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px; line-height: 1.4;"><%= inc.resolutionNotes %></div>
+            </div>
+          <% } %>
+        </div>
+
+        <!-- Incident workflow actions -->
+        <% if (inc.status !== 'resolved') { %>
+          <div class="flex gap-2 justify-end" style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
+            <button class="btn" onclick="updateIncidentStatus('<%= inc.id %>', 'acknowledged')">Acknowledge</button>
+            <button class="btn" onclick="updateIncidentStatus('<%= inc.id %>', 'investigating')">Investigate</button>
+            <button class="btn btn-primary" onclick="updateIncidentStatus('<%= inc.id %>', 'resolved')">Resolve</button>
+          </div>
+        <% } %>
+      </div>
+    <% }); %>
+  </div>
+
+</div>

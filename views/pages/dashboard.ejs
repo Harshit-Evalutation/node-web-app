@@ -1,0 +1,433 @@
+<%
+  // activeEnv is provided by global res.locals
+  var latestDep = deployments[0];
+%>
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">System Overview</h1>
+      <p class="page-desc">Real-time infrastructure health and operational monitoring for <strong style="color: var(--text-secondary);"><%= activeEnv %></strong>.</p>
+    </div>
+
+    <!-- Environment Selector -->
+    <div class="flex items-center gap-3 flex-wrap">
+      <div class="flex gap-1" style="background-color: var(--surface); padding: 2px; border: 1px solid var(--border); border-radius: 6px;">
+        <button id="env-btn-production"  class="btn btn-sm <%= activeEnv === 'production'  ? 'btn-primary' : '' %>" style="border: none;" onclick="switchEnvironment('production')">Production</button>
+        <button id="env-btn-staging"     class="btn btn-sm <%= activeEnv === 'staging'     ? 'btn-primary' : '' %>" style="border: none;" onclick="switchEnvironment('staging')">Staging</button>
+        <button id="env-btn-development" class="btn btn-sm <%= activeEnv === 'development' ? 'btn-primary' : '' %>" style="border: none;" onclick="switchEnvironment('development')">Development</button>
+      </div>
+      <button onclick="triggerSyncStats()" class="btn btn-sm" id="sync-btn">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="width: 11px; height: 11px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Sync
+      </button>
+    </div>
+  </div>
+
+  <!-- Row 1: Stats -->
+  <div class="grid grid-cols-6">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Services</span>
+        <span class="badge badge-success" style="font-size: 10px;"><%= stats.healthyServices %>/<%= stats.totalServices %></span>
+      </div>
+      <div class="stat-value"><%= stats.healthyServices %></div>
+      <div class="stat-footer">of <%= stats.totalServices %> healthy</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Containers</span>
+        <span class="badge badge-info" style="font-size: 10px;"><%= stats.runningContainers %> up</span>
+      </div>
+      <div class="stat-value"><%= stats.totalContainers %></div>
+      <div class="stat-footer"><%= stats.runningContainers %> running</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Uptime</span>
+        <span class="badge badge-success" style="font-size: 10px;">SLA</span>
+      </div>
+      <div class="stat-value"><%= stats.uptimePercentage %></div>
+      <div class="stat-footer">cluster average</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Avg Latency</span>
+        <span class="badge badge-muted" style="font-size: 10px;">P50</span>
+      </div>
+      <div class="stat-value"><%= stats.avgResponseTime %></div>
+      <div class="stat-footer">API response time</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-title">Deploy Rate</span>
+        <span class="badge badge-info" style="font-size: 10px;"><%= stats.deploymentSuccessRate %>%</span>
+      </div>
+      <div class="stat-value"><%= stats.deploymentSuccessRate %>%</div>
+      <div class="stat-footer"><%= stats.successfulDeployments %> of <%= stats.totalDeployments %> ok</div>
+    </div>
+
+    <div class="stat-card" style="<%= stats.incidentCount > 0 ? 'border-color: rgba(239, 68, 68, 0.35);' : '' %>">
+      <div class="stat-header">
+        <span class="stat-title">Open Incidents</span>
+        <% if (stats.incidentCount > 0) { %>
+          <span class="badge badge-error" style="font-size: 10px;"><%= stats.incidentCount %> open</span>
+        <% } else { %>
+          <span class="badge badge-success" style="font-size: 10px;">none</span>
+        <% } %>
+      </div>
+      <div class="stat-value" style="<%= stats.incidentCount > 0 ? 'color: var(--error);' : '' %>"><%= stats.incidentCount %></div>
+      <div class="stat-footer">requiring review</div>
+    </div>
+  </div>
+
+  <!-- Row 2: Charts -->
+  <div class="grid grid-cols-2 gap-6">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Cluster Uptime Trend (14d)</h2>
+      </div>
+      <div class="chart-container" style="height: 180px;">
+        <canvas id="uptimeChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Deployments (14d)</h2>
+      </div>
+      <div class="chart-container" style="height: 180px;">
+        <canvas id="deploymentSuccessChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="grid grid-cols-12 gap-6">
+
+    <!-- Left column (col-span-8) -->
+    <div class="col-span-8 flex flex-col gap-6">
+
+      <!-- Latest Deployment Banner -->
+      <% if (latestDep) { %>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background-color: var(--surface); border: 1px solid var(--border); border-radius: 6px; flex-wrap: wrap; gap: 12px;">
+        <div class="flex items-center gap-3">
+          <div class="status-dot <%= latestDep.status === 'success' ? 'healthy' : latestDep.status === 'running' ? 'restarting' : 'down' %>"></div>
+          <div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);"><%= latestDep.commitMsg %></div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono);">
+              <span class="env-tag env-<%= latestDep.environment %>" style="font-size: 9px;"><%= latestDep.environment %></span>
+              &nbsp;
+              <span style="color: var(--info);"><%= latestDep.commit %></span>
+              &nbsp;·&nbsp;
+              <%= latestDep.branch %>
+              &nbsp;·&nbsp;
+              <%= latestDep.deployedBy %>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="badge <%= latestDep.status === 'success' ? 'badge-success' : latestDep.status === 'running' ? 'badge-info' : 'badge-error' %>">
+            <%= latestDep.status === 'success' ? 'Deployed' : latestDep.status === 'running' ? 'Deploying' : 'Failed' %>
+          </span>
+          <span style="font-size: 11px; color: var(--text-muted);">
+            <%= latestDep.version %> &nbsp;·&nbsp; <%= latestDep.timeAgo %>
+          </span>
+        </div>
+      </div>
+      <% } %>
+
+      <!-- Recent Deployments -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent Deployments</h2>
+          <a href="/deployments" style="font-size: 11px; font-weight: 500;">View all →</a>
+        </div>
+        <div class="flex flex-col gap-3">
+          <% deployments.slice(0, 4).forEach(function(dep) { %>
+            <div class="deployment-card" style="margin-bottom: 0;">
+              <div class="deployment-header">
+                <div>
+                  <div class="deployment-msg"><%= dep.commitMsg %></div>
+                  <div class="deployment-meta mt-1">
+                    <span class="env-tag env-<%= dep.environment %>"><%= dep.environment %></span>
+                    <span>branch: <code style="font-family: var(--font-mono); color: var(--text-secondary);"><%= dep.branch %></code></span>
+                    <span>commit: <code class="deployment-commit"><%= dep.commit %></code></span>
+                    <span>by <%= dep.deployedBy %></span>
+                  </div>
+                </div>
+                <div>
+                  <% if (dep.status === 'success') { %>
+                    <span class="badge badge-success">Succeeded</span>
+                  <% } else if (dep.status === 'running') { %>
+                    <span class="badge badge-info">Building</span>
+                  <% } else { %>
+                    <span class="badge badge-error">Failed</span>
+                  <% } %>
+                </div>
+              </div>
+              <div class="flex justify-between items-center" style="font-size: 11px; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px;">
+                <span><%= dep.version %> &nbsp;·&nbsp; <%= dep.duration %></span>
+                <span><%= dep.timeAgo %></span>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- Container Health -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Container Health</h2>
+          <a href="/containers" style="font-size: 11px; font-weight: 500;">Manage →</a>
+        </div>
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Container</th>
+                <th>Image</th>
+                <th>Status</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>Uptime</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% containers.slice(0, 5).forEach(function(cnt) { %>
+                <tr>
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <div class="status-dot <%= cnt.status === 'running' ? 'healthy' : cnt.status === 'warning' ? 'warning' : cnt.status === 'restarting' ? 'restarting' : 'down' %>"></div>
+                      <strong class="text-mono" style="color: var(--text-primary);"><%= cnt.name %></strong>
+                    </div>
+                  </td>
+                  <td class="text-mono" style="font-size: 11px; color: var(--text-muted);"><%= cnt.image %></td>
+                  <td>
+                    <% if (cnt.status === 'running') { %>
+                      <span class="badge badge-success" style="font-size: 10px;">Running</span>
+                    <% } else if (cnt.status === 'warning') { %>
+                      <span class="badge badge-warning" style="font-size: 10px;">Degraded</span>
+                    <% } else { %>
+                      <span class="badge badge-error" style="font-size: 10px;">Stopped</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <div class="progress-bar" style="width: 52px; margin-top: 0;">
+                        <div class="progress-fill <%= cnt.cpu > 70 ? 'error' : 'info' %>" style="width: <%= Math.min(cnt.cpu, 100) %>%"></div>
+                      </div>
+                      <span class="text-mono" style="font-size: 10px;"><%= cnt.cpu %>%</span>
+                    </div>
+                  </td>
+                  <td class="text-mono" style="font-size: 11px;"><%= cnt.memoryMB %> MB</td>
+                  <td class="text-mono" style="font-size: 11px; color: var(--text-muted);"><%= cnt.uptime %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column (col-span-4) -->
+    <div class="col-span-4 flex flex-col gap-6">
+
+      <!-- Environment Status -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Environments</h2>
+          <a href="/environments" style="font-size: 11px; font-weight: 500;">Manage →</a>
+        </div>
+        <div class="flex flex-col gap-2">
+          <% environments.forEach(function(e) { %>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background-color: #0c0c0c; border: 1px solid var(--border); border-radius: 6px; border-left: 2px solid <%= activeEnv === e.slug ? 'var(--text-primary)' : 'transparent' %>;">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="env-tag env-<%= e.slug %>"><%= e.name %></span>
+                  <span style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);"><%= e.version %></span>
+                </div>
+                <div style="font-size: 10px; color: var(--text-muted); margin-top: 3px;"><%= e.traffic %></div>
+              </div>
+              <span class="badge <%= e.status === 'operational' ? 'badge-success' : 'badge-warning' %>" style="font-size: 10px;"><%= e.status %></span>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+
+      <!-- Active Incidents -->
+      <div class="card" style="<%= incidents.filter(function(i){return i.status!=='resolved'}).length > 0 ? 'border-color: rgba(239, 68, 68, 0.25);' : '' %>">
+        <div class="card-header">
+          <h2 class="card-title">Incidents</h2>
+          <a href="/incidents" style="font-size: 11px; font-weight: 500;">View all →</a>
+        </div>
+        <% var openIncidents = incidents.filter(function(i){return i.status!=='resolved';}); %>
+        <% if (openIncidents.length === 0) { %>
+          <div style="text-align: center; padding: 24px 0; color: var(--text-muted);">
+            <div style="font-size: 22px; margin-bottom: 8px;">✓</div>
+            <div style="font-size: 12px; font-weight: 500; color: var(--success);">All systems operational</div>
+            <div style="font-size: 11px; margin-top: 4px;">No open incidents</div>
+          </div>
+        <% } else { %>
+          <div class="flex flex-col gap-3">
+            <% openIncidents.slice(0, 3).forEach(function(inc) { %>
+              <div style="padding: 10px 12px; background-color: #0c0c0c; border: 1px solid var(--border); border-radius: 6px; border-left: 3px solid <%= inc.severity === 'critical' ? 'var(--error)' : inc.severity === 'high' ? '#F97316' : 'var(--warning)' %>;">
+                <div class="flex justify-between items-start mb-1">
+                  <code style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono);"><%= inc.id %></code>
+                  <span class="badge <%= inc.status === 'investigating' ? 'badge-info' : 'badge-warning' %>" style="font-size: 9px;"><%= inc.status %></span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-primary); font-weight: 500; margin-bottom: 4px;"><%= inc.title %></div>
+                <div style="font-size: 11px; color: var(--text-muted);"><%= inc.service %> · <%= inc.timeAgo %></div>
+                <div class="flex gap-2 mt-2">
+                  <button class="btn btn-sm flex-1" onclick="acknowledgeIncident('<%= inc.id %>')">Ack</button>
+                  <button class="btn btn-sm btn-primary flex-1" onclick="resolveIncident('<%= inc.id %>')">Resolve</button>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- Deployment Success Rate -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Pipeline Health</h2>
+          <a href="/cicd" style="font-size: 11px; font-weight: 500;">CI/CD →</a>
+        </div>
+        <div style="padding: 8px 0;">
+          <div class="flex justify-between items-center" style="font-size: 11px; margin-bottom: 8px;">
+            <span style="color: var(--text-muted);">DEPLOYMENT SUCCESS RATE</span>
+            <span class="text-mono" style="color: var(--text-primary); font-weight: 600;"><%= stats.deploymentSuccessRate %>%</span>
+          </div>
+          <div class="progress-bar" style="height: 8px;">
+            <div class="progress-fill <%= stats.deploymentSuccessRate >= 90 ? 'success' : stats.deploymentSuccessRate >= 70 ? 'warning' : 'error' %>" style="width: <%= stats.deploymentSuccessRate %>%;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-top: 6px;">
+            <span>Succeeded: <strong style="color: var(--text-secondary);"><%= stats.successfulDeployments %></strong></span>
+            <span>Total: <strong style="color: var(--text-secondary);"><%= stats.totalDeployments %></strong></span>
+          </div>
+
+          <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+            <% cicd.slice(0, 3).forEach(function(pipe) { %>
+              <div class="flex items-center justify-between" style="font-size: 11px;">
+                <div class="flex items-center gap-2">
+                  <div class="status-dot <%= pipe.status === 'success' ? 'healthy' : pipe.status === 'running' ? 'restarting' : 'down' %>"></div>
+                  <span class="text-mono" style="color: var(--text-secondary);"><%= pipe.branch %></span>
+                </div>
+                <span style="color: var(--text-muted);"><%= pipe.timeAgo %></span>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const el = document.getElementById('last-updated');
+    if (el) el.textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+    // Chart logic
+    const dbMetrics = <%- JSON.stringify(dashboardMetrics || {}) %>;
+    if (dbMetrics.labels) {
+      const baseOpts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#111111',
+            borderColor: '#262626',
+            borderWidth: 1,
+            titleColor: '#A1A1AA',
+            bodyColor: '#FAFAFA',
+            titleFont: { family: 'JetBrains Mono', size: 10 },
+            bodyFont:  { family: 'JetBrains Mono', size: 11 },
+            padding: 10,
+          },
+        },
+        scales: {
+          x: {
+            grid: { color: '#262626' },
+            ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 7 },
+          },
+          y: {
+            grid: { color: '#262626' },
+            ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 } },
+          },
+        },
+      };
+
+      // Uptime Chart
+      const upCtx = document.getElementById('uptimeChart');
+      if (upCtx) {
+        new Chart(upCtx.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels: dbMetrics.labels,
+            datasets: [{
+              label: 'Uptime %',
+              data: dbMetrics.uptime,
+              borderColor: '#FAFAFA',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0,
+              pointRadius: 2,
+              pointBackgroundColor: '#FAFAFA'
+            }],
+          },
+          options: {
+            ...baseOpts,
+            scales: {
+              ...baseOpts.scales,
+              y: { ...baseOpts.scales.y, min: 99.5, max: 100 }
+            }
+          }
+        });
+      }
+
+      // Deployment Chart
+      const depCtx = document.getElementById('deploymentSuccessChart');
+      if (depCtx) {
+        new Chart(depCtx.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: dbMetrics.labels,
+            datasets: [
+              {
+                label: 'Failed',
+                data: dbMetrics.deploymentFailed,
+                backgroundColor: '#52525B',
+                borderWidth: 0,
+              },
+              {
+                label: 'Success',
+                data: dbMetrics.deploymentSuccess,
+                backgroundColor: '#FAFAFA',
+                borderWidth: 0,
+              }
+            ],
+          },
+          options: {
+            ...baseOpts,
+            scales: {
+              x: { stacked: true, grid: { display: false }, ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 7 } },
+              y: { stacked: true, grid: { color: '#262626' }, ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 } } }
+            }
+          }
+        });
+      }
+    }
+  });
+</script>

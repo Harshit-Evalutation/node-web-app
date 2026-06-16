@@ -1,0 +1,227 @@
+<div style="display: flex; flex-direction: column; gap: 20px;">
+
+  <!-- Page Header -->
+  <div class="flex justify-between items-center flex-wrap gap-3">
+    <div>
+      <h1 style="font-size: 20px;">Deployment History</h1>
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 2px;">Vercel-style deployment history, build statistics, and environment pipelines.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="badge badge-success"><%= deployments.filter(function(d){return d.status==='success'}).length %> Succeeded</span>
+      <span class="badge badge-muted"><%= deployments.length %> deploys</span>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="grid grid-cols-4 gap-4">
+    <div class="stat-card">
+      <span class="stat-title">Total Deployments</span>
+      <div class="stat-value"><%= deployments.length %></div>
+      <div class="stat-footer">Across all branches</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Pipeline Success Rate</span>
+      <% var successPercent = Math.round(deployments.filter(function(d){return d.status==='success'}).length/deployments.length*100); %>
+      <div class="stat-value" style="color: var(--success);"><%= successPercent %>%</div>
+      <div class="stat-footer">Standard deviation: 2.1%</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Active / In Progress</span>
+      <div class="stat-value" style="color: var(--info);"><%= deployments.filter(function(d){return d.status==='running'}).length %></div>
+      <div class="stat-footer">Executing node hooks</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Latest Released Version</span>
+      <div class="stat-value" style="font-size: 18px; line-height: 1.6; color: var(--text-primary);"><%= deployments[0].version %></div>
+      <div class="stat-footer">Merged into main branch</div>
+    </div>
+  </div>
+
+  <!-- Vercel Deployment List -->
+  <div class="grid grid-cols-12 gap-6">
+
+    <!-- Left Column: Vercel Deployments Cards List (col-span-8) -->
+    <div class="col-span-8 flex flex-col gap-4">
+      <h2 style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Deployments Pipeline Registry</h2>
+      
+      <% deployments.forEach(function(dep) { %>
+        <div class="deployment-card">
+          <div class="deployment-header">
+            <div>
+              <div class="deployment-msg"><%= dep.commitMsg %></div>
+              <div class="deployment-meta mt-1">
+                <span class="env-tag env-<%= dep.environment %>"><%= dep.environment %></span>
+                <span style="font-family: var(--font-mono); color: var(--text-primary); font-size: 10px;">
+                  <%= dep.version %>
+                </span>
+                <span style="color: var(--text-muted);">branch:</span>
+                <strong style="color: var(--text-secondary); font-family: var(--font-mono);"><%= dep.branch %></strong>
+                <span style="color: var(--text-muted);">commit:</span>
+                <code class="deployment-commit" style="font-family: var(--font-mono); font-size: 11px;"><%= dep.commit %></code>
+                <span style="color: var(--text-muted);">by</span>
+                <span style="color: var(--text-secondary); font-weight: 550;"><%= dep.deployedBy %></span>
+              </div>
+            </div>
+            <div>
+              <% if (dep.status === 'success') { %>
+                <span class="badge badge-success">Succeeded</span>
+              <% } else if (dep.status === 'running') { %>
+                <span class="badge badge-info">Building</span>
+              <% } else { %>
+                <span class="badge badge-error">Failed</span>
+              <% } %>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 8px;">
+            <div class="flex gap-4">
+              <span>Duration: <strong style="color: var(--text-secondary);"><%= dep.duration %></strong></span>
+              <span>ID: <code style="font-family: var(--font-mono);"><%= dep.id %></code></span>
+            </div>
+            <span><%= dep.timeAgo %></span>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+
+    <!-- Right Column: Timeline & Meta Stats (col-span-4) -->
+    <div class="col-span-4 flex flex-col gap-6">
+
+      <!-- Deployment Frequency Chart -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Deployment Frequency</h2>
+          <span class="card-subtitle">Last 14 days</span>
+        </div>
+        <div class="chart-container" style="height: 140px;">
+          <canvas id="freqChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Success vs Failed Chart -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Success Rate Trend</h2>
+          <span class="card-subtitle">Last 14 days</span>
+        </div>
+        <div class="chart-container" style="height: 140px;">
+          <canvas id="successChart"></canvas>
+        </div>
+      </div>
+      
+      <!-- Deployment Timeline -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Live Deployment Logs</h2>
+          <span class="card-subtitle">Daemon pipeline triggers</span>
+        </div>
+        
+        <div style="position: relative; padding-left: 20px; display: flex; flex-direction: column; gap: 16px;">
+          <!-- Timeline line -->
+          <div style="position: absolute; left: 4px; top: 4px; bottom: 4px; width: 1px; background-color: var(--border);"></div>
+
+          <% deployments.slice(0, 5).forEach(function(dep) { %>
+            <div style="position: relative;">
+              <!-- Indicator node dot -->
+              <div class="status-dot <%= dep.status === 'success' ? 'healthy' : dep.status === 'running' ? 'info' : 'down' %>" 
+                   style="position: absolute; left: -20px; top: 4px; border: 2px solid var(--surface); width: 10px; height: 10px;"></div>
+              
+              <div style="font-size: 12px; color: var(--text-primary); font-family: var(--font-mono); font-weight: 600;"><%= dep.version %></div>
+              <div style="font-size: 11px; color: var(--text-secondary); font-weight: 500;"><%= dep.commitMsg.substring(0, 32) %>...</div>
+              <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                <%= dep.timeAgo %> on <span class="env-tag env-<%= dep.environment %>" style="font-size: 8px; padding: 0px 4px;"><%= dep.environment %></span>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const metrics = <%- JSON.stringify(deploymentMetrics || {}) %>;
+    if (!metrics.labels) return;
+
+    const baseOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111111',
+          borderColor: '#262626',
+          borderWidth: 1,
+          titleColor: '#A1A1AA',
+          bodyColor: '#FAFAFA',
+          titleFont: { family: 'JetBrains Mono', size: 10 },
+          bodyFont:  { family: 'JetBrains Mono', size: 11 },
+          padding: 10,
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 7 },
+        },
+        y: {
+          grid: { color: '#262626' },
+          ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 }, stepSize: 1 },
+        },
+      },
+    };
+
+    const freqCtx = document.getElementById('freqChart');
+    if (freqCtx) {
+      new Chart(freqCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: metrics.labels,
+          datasets: [{
+            label: 'Deploys',
+            data: metrics.frequency,
+            backgroundColor: '#FAFAFA',
+            borderWidth: 0,
+          }]
+        },
+        options: baseOpts
+      });
+    }
+
+    const succCtx = document.getElementById('successChart');
+    if (succCtx) {
+      new Chart(succCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: metrics.labels,
+          datasets: [
+            {
+              label: 'Failed',
+              data: metrics.failed,
+              backgroundColor: '#52525B',
+              borderWidth: 0,
+            },
+            {
+              label: 'Success',
+              data: metrics.success,
+              backgroundColor: '#FAFAFA',
+              borderWidth: 0,
+            }
+          ]
+        },
+        options: {
+          ...baseOpts,
+          scales: {
+            x: { ...baseOpts.scales.x, stacked: true },
+            y: { ...baseOpts.scales.y, stacked: true }
+          }
+        }
+      });
+    }
+  });
+</script>

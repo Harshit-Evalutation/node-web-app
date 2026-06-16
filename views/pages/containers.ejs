@@ -1,0 +1,229 @@
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Container Monitoring</h1>
+      <p class="page-desc">Docker daemon container status, resource usage, and lifecycle management.</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="badge badge-success"><%= containers.filter(function(c){return c.status==='running'}).length %> running</span>
+      <span class="badge badge-muted"><%= containers.length %> total</span>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="grid grid-cols-4 gap-4">
+    <div class="stat-card">
+      <span class="stat-title">Total Containers</span>
+      <div class="stat-value"><%= containers.length %></div>
+      <div class="stat-footer">Docker engine</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Running</span>
+      <div class="stat-value" style="color: var(--success);"><%= containers.filter(function(c){return c.status==='running'}).length %></div>
+      <div class="stat-footer">Healthy processes</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Degraded</span>
+      <div class="stat-value" style="color: var(--warning);"><%= containers.filter(function(c){return c.status==='warning'}).length %></div>
+      <div class="stat-footer">Elevated resource usage</div>
+    </div>
+    <div class="stat-card">
+      <span class="stat-title">Total Restarts</span>
+      <div class="stat-value" style="color: <%= containers.reduce(function(s,c){return s+c.restarts},0) > 3 ? 'var(--error)' : 'var(--text-primary)' %>;"><%= containers.reduce(function(s,c){return s+c.restarts},0) %></div>
+      <div class="stat-footer">Daemon restart count</div>
+    </div>
+  </div>
+
+  <!-- Resource Charts -->
+  <div class="grid grid-cols-2 gap-6">
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Cluster Resource Utilization (24h)</h2>
+      </div>
+      <div class="chart-container" style="height: 180px;">
+        <canvas id="resourceChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Container Restart Events (24h)</h2>
+      </div>
+      <div class="chart-container" style="height: 180px;">
+        <canvas id="restartChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container Registry Table -->
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">Container Registry</h2>
+      <span class="card-subtitle">Via Docker daemon socket — replaceable with Docker API</span>
+    </div>
+    <div class="data-table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Image</th>
+            <th>Status</th>
+            <th>Uptime</th>
+            <th>Port</th>
+            <th>CPU</th>
+            <th>Memory</th>
+            <th>Restarts</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% containers.forEach(function(cnt) { %>
+            <tr data-container="<%= cnt.name %>">
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="status-dot <%= cnt.status === 'running' ? 'healthy' : cnt.status === 'warning' ? 'warning' : cnt.status === 'restarting' ? 'restarting' : 'down' %>"></div>
+                  <strong class="text-mono" style="color: var(--text-primary); font-size: 12px;"><%= cnt.name %></strong>
+                </div>
+              </td>
+              <td class="text-mono" style="font-size: 11px; color: var(--text-muted);"><%= cnt.image %></td>
+              <td>
+                <% if (cnt.status === 'running') { %>
+                  <span class="badge badge-success" style="font-size: 10px;">Running</span>
+                <% } else if (cnt.status === 'warning') { %>
+                  <span class="badge badge-warning" style="font-size: 10px;">Degraded</span>
+                <% } else if (cnt.status === 'restarting') { %>
+                  <span class="badge badge-info" style="font-size: 10px;">Restarting</span>
+                <% } else { %>
+                  <span class="badge badge-error" style="font-size: 10px;">Stopped</span>
+                <% } %>
+              </td>
+              <td class="text-mono" style="font-size: 11px; color: var(--text-secondary);"><%= cnt.uptime %></td>
+              <td class="text-mono" style="font-size: 11px; color: var(--info);"><%= cnt.port %></td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="progress-bar" style="width: 48px; margin-top: 0;">
+                    <div class="progress-fill <%= cnt.cpu > 70 ? 'error' : 'info' %>" style="width: <%= Math.min(cnt.cpu, 100) %>%"></div>
+                  </div>
+                  <span class="text-mono" style="font-size: 10px;"><%= cnt.cpu %>%</span>
+                </div>
+              </td>
+              <td>
+                <div class="flex items-center gap-2">
+                  <div class="progress-bar" style="width: 48px; margin-top: 0;">
+                    <div class="progress-fill <%= cnt.memory > 80 ? 'error' : 'warning' %>" style="width: <%= Math.min(cnt.memory, 100) %>%"></div>
+                  </div>
+                  <span class="text-mono" style="font-size: 10px;"><%= cnt.memoryMB %>MB</span>
+                </div>
+              </td>
+              <td>
+                <span class="text-mono" style="font-size: 11px; color: <%= cnt.restarts > 2 ? 'var(--error)' : cnt.restarts > 0 ? 'var(--warning)' : 'var(--text-muted)' %>;">
+                  <%= cnt.restarts %>
+                </span>
+              </td>
+              <td>
+                <div class="flex gap-1" style="justify-content: flex-end;">
+                  <button class="btn btn-sm" id="inspect-<%= cnt.name %>" onclick="inspectContainer('<%= cnt.name %>','<%= cnt.image %>','<%= cnt.created %>','<%= cnt.port %>')">Inspect</button>
+                  <button class="btn btn-sm" id="logs-<%= cnt.name %>" onclick="viewContainerLogs('<%= cnt.name %>')">Logs</button>
+                  <button class="btn btn-sm btn-secondary" id="restart-<%= cnt.name %>" onclick="restartContainer('<%= cnt.name %>','<%= cnt.id %>')">Restart</button>
+                  <button class="btn btn-sm btn-danger" id="stop-<%= cnt.name %>" onclick="stopContainer('<%= cnt.name %>','<%= cnt.id %>')">Stop</button>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const metrics = <%- JSON.stringify(containerMetrics || {}) %>;
+    if (!metrics.labels) return;
+
+    const baseOpts = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111111',
+          borderColor: '#262626',
+          borderWidth: 1,
+          titleColor: '#A1A1AA',
+          bodyColor: '#FAFAFA',
+          titleFont: { family: 'JetBrains Mono', size: 10 },
+          bodyFont:  { family: 'JetBrains Mono', size: 11 },
+          padding: 10,
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: '#262626' },
+          ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 7 },
+        },
+        y: {
+          grid: { color: '#262626' },
+          ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 } },
+        },
+      },
+    };
+
+    const resCtx = document.getElementById('resourceChart');
+    if (resCtx) {
+      new Chart(resCtx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: metrics.labels,
+          datasets: [
+            {
+              label: 'CPU %',
+              data: metrics.cpuAvg,
+              borderColor: '#FAFAFA',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.1,
+              pointRadius: 0,
+            },
+            {
+              label: 'Mem %',
+              data: metrics.memAvg,
+              borderColor: '#A1A1AA',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              tension: 0.1,
+              pointRadius: 0,
+            }
+          ]
+        },
+        options: baseOpts
+      });
+    }
+
+    const restCtx = document.getElementById('restartChart');
+    if (restCtx) {
+      new Chart(restCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: metrics.labels,
+          datasets: [{
+            label: 'Restarts',
+            data: metrics.restarts,
+            backgroundColor: '#FAFAFA',
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          ...baseOpts,
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 }, maxTicksLimit: 7 } },
+            y: { grid: { color: '#262626' }, ticks: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 }, stepSize: 1 } }
+          }
+        }
+      });
+    }
+  });
+</script>
