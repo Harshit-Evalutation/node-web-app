@@ -1,20 +1,23 @@
-# 🏗️ System Architecture — OpsCenter Dashboard
+# Architecture Overview
 
-> Architecture documentation for the Node.js OpsCenter Dashboard deployed on AWS EC2 with Docker, Nginx, Certbot SSL, and GitHub Actions CI/CD.
+OpsCenter Dashboard — AWS EC2 Deployment
+
+This document describes the system architecture for the OpsCenter Dashboard deployed on AWS EC2. It covers the request flow from the end user through DNS, Nginx, and into the Node.js container, the SSL certificate lifecycle, the CI/CD pipeline, and the Docker Compose service layout.
 
 ---
 
 ## Overview
 
-The OpsCenter Dashboard follows a modern cloud-native architecture with the following key layers:
+The deployment consists of the following layers:
 
-1. **Client Layer** — End user accesses via HTTPS through a web browser
-2. **DNS Resolution** — Domain `node-app.tryagentikai.com` resolves to EC2 Public IP
-3. **AWS EC2 Host** — Ubuntu 22.04 LTS instance running all services
-4. **Nginx** — Reverse proxy handling SSL termination and traffic routing
-5. **Docker Compose** — Container orchestration for the Node.js application
-6. **Node.js Container** — Express.js application serving the dashboard
-7. **GitHub Actions** — CI/CD pipeline for automated build and validation
+1. **Client** — End user sends HTTPS requests from a browser
+2. **DNS** — The domain `node-app.tryagentikai.com` resolves to the EC2 public IP
+3. **AWS EC2 Host** — Ubuntu 22.04 LTS instance running Nginx, Certbot, and Docker
+4. **Nginx** — Reverse proxy handling SSL termination on ports 80 and 443
+5. **Certbot** — Manages Let's Encrypt certificate issuance and renewal
+6. **Docker Compose** — Orchestrates the Node.js application container
+7. **Node.js Container** — Express.js application serving the dashboard on port 3000
+8. **GitHub Actions** — CI pipeline triggered on push to `main`
 
 ---
 
@@ -22,18 +25,18 @@ The OpsCenter Dashboard follows a modern cloud-native architecture with the foll
 
 ```mermaid
 graph TB
-    User["👤 User / Browser<br/>HTTPS Request"]
-    DNS["🌐 DNS Cloud<br/>node-app.tryagentikai.com<br/>Domain Resolution"]
-    GHA["⚙️ GitHub Actions<br/>CI/CD Pipeline<br/>Build · Audit · Test"]
+    User["User / Browser<br/>HTTPS Request"]
+    DNS["DNS Cloud<br/>node-app.tryagentikai.com<br/>Domain Resolution"]
+    GHA["GitHub Actions<br/>CI/CD Pipeline<br/>Build - Audit - Test"]
 
-    subgraph EC2["☁️ AWS EC2 Host — Ubuntu 22.04 LTS (t3.medium)"]
+    subgraph EC2["AWS EC2 Host — Ubuntu 22.04 LTS (t3.medium)"]
         direction TB
-        Nginx["🔒 Nginx 1.25<br/>Reverse Proxy<br/>SSL/TLS Termination<br/>Ports: 80 → 443"]
-        Certbot["🔐 Certbot<br/>Let's Encrypt SSL<br/>Auto-Renewal"]
+        Nginx["Nginx 1.25<br/>Reverse Proxy<br/>SSL/TLS Termination<br/>Ports: 80 and 443"]
+        Certbot["Certbot<br/>Let's Encrypt SSL<br/>Auto-Renewal"]
 
-        subgraph DC["🐙 Docker Compose"]
+        subgraph DC["Docker Compose"]
             direction TB
-            NodeApp["📦 Node.js Container<br/>OpsCenter Dashboard<br/>Express.js v4<br/>Port 3000<br/>devops-command-center:latest"]
+            NodeApp["Node.js Container<br/>OpsCenter Dashboard<br/>Express.js v4<br/>Port 3000<br/>devops-command-center:latest"]
         end
     end
 
@@ -50,11 +53,11 @@ graph TB
 
 ```mermaid
 sequenceDiagram
-    actor User as 👤 User Browser
-    participant DNS as 🌐 DNS Resolver
-    participant EC2 as ☁️ EC2 Public IP
-    participant Nginx as 🔒 Nginx
-    participant Node as 📦 Node.js :3000
+    actor User as User Browser
+    participant DNS as DNS Resolver
+    participant EC2 as EC2 Public IP
+    participant Nginx as Nginx
+    participant Node as Node.js :3000
 
     User->>DNS: Resolve node-app.tryagentikai.com
     DNS-->>User: Returns EC2 Public IP
@@ -68,7 +71,7 @@ sequenceDiagram
     Node-->>Nginx: 200 OK + HTML Response
     Nginx-->>User: 200 OK + Compressed HTML
 
-    Note over User,Node: HTTP on port 80 → 301 Redirect to HTTPS
+    Note over User,Node: HTTP on port 80 receives a 301 redirect to HTTPS
 ```
 
 ---
@@ -77,9 +80,9 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    Dev["👨‍💻 Developer<br/>git push main"] --> GHA
+    Dev["Developer<br/>git push main"] --> GHA
 
-    subgraph GHA["⚙️ GitHub Actions Workflow"]
+    subgraph GHA["GitHub Actions Workflow"]
         direction TB
         S1["1. Checkout Repository<br/>actions/checkout@v4"]
         S2["2. Setup Node.js 20<br/>actions/setup-node@v4"]
@@ -96,7 +99,7 @@ flowchart LR
         S1-->S2-->S3-->S4-->S5-->S6-->S7-->S8-->S9-->S10-->S11
     end
 
-    GHA -->|"✅ CI Validated"| EC2["☁️ AWS EC2<br/>Production"]
+    GHA -->|"CI Validated"| EC2["AWS EC2<br/>Production"]
 ```
 
 ---
@@ -105,12 +108,12 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    Certbot["🔐 Certbot Client<br/>on EC2"] -->|"HTTP-01 Challenge<br/>Port 80"| LE["🏛️ Let's Encrypt<br/>ACME Server"]
+    Certbot["Certbot Client<br/>on EC2"] -->|"HTTP-01 Challenge<br/>Port 80"| LE["Let's Encrypt<br/>ACME Server"]
     LE -->|"Domain Verified"| Certbot
-    Certbot -->|"Issues Certificate<br/>/etc/letsencrypt/live/"| Cert["📜 SSL Certificate<br/>fullchain.pem + privkey.pem<br/>Valid 90 days"]
-    Cert -->|"Configure SSL"| Nginx["🔒 Nginx<br/>ssl_certificate<br/>ssl_certificate_key"]
-    Timer["⏰ Systemd Timer<br/>Twice daily check"] -->|"Renews if < 30 days"| Certbot
-    Certbot -->|"Post-renewal hook"| Reload["🔄 nginx reload<br/>Zero-downtime renewal"]
+    Certbot -->|"Issues Certificate<br/>/etc/letsencrypt/live/"| Cert["SSL Certificate<br/>fullchain.pem + privkey.pem<br/>Valid 90 days"]
+    Cert -->|"Configure SSL"| Nginx["Nginx<br/>ssl_certificate<br/>ssl_certificate_key"]
+    Timer["Systemd Timer<br/>Twice daily check"] -->|"Renews if < 30 days"| Certbot
+    Certbot -->|"Post-renewal hook"| Reload["nginx reload<br/>Zero-downtime renewal"]
 ```
 
 ---
@@ -119,23 +122,23 @@ flowchart TD
 
 ```mermaid
 graph TB
-    subgraph Compose["🐙 Docker Compose — devops-network (bridge)"]
+    subgraph Compose["Docker Compose — devops-network (bridge)"]
         direction LR
 
         subgraph AppSvc["app service"]
-            App["📦 devops-command-center:latest<br/>Built from Dockerfile (multi-stage)<br/>Node.js 18 Alpine<br/>Non-root user: devops (UID 1001)<br/>Healthcheck: curl /health every 30s"]
+            App["devops-command-center:latest<br/>Built from Dockerfile (multi-stage)<br/>Node.js 18 Alpine<br/>Non-root user: devops (UID 1001)<br/>Healthcheck: curl /health every 30s"]
         end
 
         subgraph NginxSvc["nginx service (profile: with-nginx)"]
-            NginxC["🔒 nginx:1.25-alpine<br/>Depends on: app (healthy)"]
+            NginxC["nginx:1.25-alpine<br/>Depends on: app (healthy)"]
         end
 
-        Logs["📁 Volume: devops-app-logs<br/>/app/logs"]
-        NginxLogs["📁 Volume: devops-nginx-logs<br/>/var/log/nginx"]
+        Logs["Volume: devops-app-logs<br/>/app/logs"]
+        NginxLogs["Volume: devops-nginx-logs<br/>/var/log/nginx"]
     end
 
-    Host["☁️ EC2 Host"] -->|"Port 3000:3000"| App
-    Host -->|"Port 80:80<br/>Port 443:443"| NginxC
+    Host["EC2 Host"] -->|"Port 3000:3000"| App
+    Host -->|"Port 80:80 / Port 443:443"| NginxC
     App --- Logs
     NginxC --- NginxLogs
     NginxC -->|"proxy_pass localhost:3000"| App
@@ -152,10 +155,10 @@ graph TB
 | Framework | Express.js | 4.x | Web framework |
 | Container | Docker | 24.x | Application containerization |
 | Orchestration | Docker Compose | v2.x | Multi-container management |
-| Reverse Proxy | Nginx | 1.25 Alpine | SSL termination + routing |
-| SSL/TLS | Let's Encrypt | Certbot 2.x | Free SSL certificate authority |
-| CI/CD | GitHub Actions | - | Automated build & validation |
-| Domain | DNS A Record | - | node-app.tryagentikai.com |
+| Reverse Proxy | Nginx | 1.25 Alpine | SSL termination and routing |
+| SSL/TLS | Let's Encrypt | Certbot 2.x | Certificate authority |
+| CI/CD | GitHub Actions | — | Automated build and validation |
+| Domain | DNS A Record | — | node-app.tryagentikai.com |
 
 ---
 
@@ -164,16 +167,16 @@ graph TB
 | Port | Protocol | From | To | Purpose |
 |------|----------|------|----|---------|
 | 22 | TCP | Admin IP | EC2 | SSH management |
-| 80 | TCP | Internet | Nginx | HTTP + Certbot ACME challenge |
-| 443 | TCP | Internet | Nginx | HTTPS (TLS 1.2/1.3) |
-| 3000 | TCP | Nginx (localhost) | Node.js container | App traffic (internal) |
+| 80 | TCP | Internet | Nginx | HTTP and Certbot ACME challenge |
+| 443 | TCP | Internet | Nginx | HTTPS (TLS 1.2 / TLS 1.3) |
+| 3000 | TCP | Nginx (localhost) | Node.js container | Application traffic (internal) |
 
 ---
 
-## Architecture Diagram (Image)
+## Architecture Diagram
 
 ![OpsCenter Dashboard Architecture](architecture.png)
 
 ---
 
-*Generated: June 2025 | OpsCenter Dashboard v1.0.0*
+*June 2025 | OpsCenter Dashboard v1.0.0*

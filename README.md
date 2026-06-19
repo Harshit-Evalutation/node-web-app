@@ -1,4 +1,6 @@
-# 🚀 OpsCenter Dashboard — Node.js DevOps Monitoring Platform
+# OpsCenter Dashboard
+
+Node.js DevOps Monitoring Platform
 
 <div align="center">
 
@@ -11,59 +13,61 @@
 ![CI/CD](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
-**A production-ready DevOps monitoring dashboard deployed on AWS EC2 with HTTPS, Docker, Nginx, and GitHub Actions CI/CD.**
-
 [Live App](https://node-app.tryagentikai.com) · [Architecture](docs/architecture.md) · [Deployment Guide](Deployment.md) · [Challenges](Challenges.md)
 
 </div>
 
 ---
 
-## 📋 Project Overview
+## Project Overview
 
-**OpsCenter Dashboard** is a full-stack Node.js web application that gives DevOps engineers a single unified interface to monitor applications, containers, deployments, services, incidents, logs, and CI/CD pipelines.
+OpsCenter Dashboard is a full-stack Node.js web application built to give DevOps engineers a single interface for monitoring applications, containers, deployments, services, incidents, logs, and CI/CD pipelines.
 
-Built with enterprise aesthetics inspired by Vercel, Datadog, and Grafana — and deployed on **AWS EC2** with:
-- ✅ HTTPS via Certbot + Let's Encrypt
-- ✅ Nginx reverse proxy (ports 80/443 → 3000)
-- ✅ Docker + Docker Compose containerization
-- ✅ GitHub Actions CI/CD pipeline
+The application is deployed on AWS EC2 with the following configuration:
+
+- HTTPS via Certbot and Let's Encrypt
+- Nginx as a reverse proxy handling ports 80 and 443
+- Docker and Docker Compose for containerization
+- GitHub Actions for CI validation on every push to `main`
 
 ---
 
-## 🌟 Features
+## Features
 
 | Feature | Description |
 |---------|-------------|
-| 📊 Dashboard Overview | Animated metric cards with real-time stats |
-| 🟢 Application Health | Service monitoring with CPU/memory metrics |
-| 🐳 Container Monitoring | Docker container status, uptime, restart counts |
-| 🚀 Deployment History | Timeline view with version tracking |
-| 📈 Service Metrics | Chart.js charts for CPU, RAM, Network, Disk |
-| 📝 Log Viewer | Terminal-style log viewer with search/filter |
-| 🚨 Incident Center | Severity-based incident tracking and management |
-| 🌍 Environment Management | Production, Staging, Development tracking |
-| 🔄 CI/CD Pipeline | Stage-by-stage pipeline visualization |
-| 🔌 REST API | Complete JSON API for all data endpoints |
+| Dashboard Overview | Metric cards with real-time stats |
+| Application Health | Service monitoring with CPU and memory metrics |
+| Container Monitoring | Docker container status, uptime, and restart counts |
+| Deployment History | Timeline view with version tracking |
+| Service Metrics | Chart.js charts for CPU, RAM, Network, and Disk |
+| Log Viewer | Terminal-style log viewer with search and filter |
+| Incident Center | Severity-based incident tracking and management |
+| Environment Management | Production, Staging, and Development tracking |
+| CI/CD Pipeline | Stage-by-stage pipeline visualization |
+| REST API | JSON API for all data endpoints |
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 ### Backend
-- **Runtime**: Node.js 20 (LTS)
+
+- **Runtime**: Node.js 20 LTS
 - **Framework**: Express.js 4.x
 - **Architecture**: MVC (Model-View-Controller)
 - **Logging**: Winston
 - **Security**: Helmet, express-rate-limit, CORS
 
 ### Frontend
+
 - **Templates**: EJS (Embedded JavaScript)
 - **CSS**: Tailwind CSS (CDN) + Custom CSS
 - **Charts**: Chart.js 4.x
 - **Fonts**: Inter + JetBrains Mono (Google Fonts)
 
-### DevOps & Infrastructure
+### Infrastructure
+
 | Component | Technology |
 |-----------|-----------|
 | Containerization | Docker (multi-stage build) |
@@ -72,16 +76,16 @@ Built with enterprise aesthetics inspired by Vercel, Datadog, and Grafana — an
 | SSL/TLS | Certbot + Let's Encrypt |
 | Cloud | AWS EC2 (Ubuntu 22.04 LTS) |
 | CI/CD | GitHub Actions |
-| DNS | node-app.tryagentikai.com |
+| Domain | node-app.tryagentikai.com |
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 node-web-app/
 ├── app.js                    # Express entry point
-├── package.json              # Dependencies & scripts
+├── package.json              # Dependencies and scripts
 ├── Dockerfile                # Multi-stage Docker build
 ├── docker-compose.yml        # Service orchestration
 ├── nginx.conf                # Nginx reverse proxy config
@@ -97,7 +101,7 @@ node-web-app/
 │   └── healthController.js   # Health check endpoints
 │
 ├── middleware/
-│   ├── errorHandler.js       # 404 + global error handler
+│   ├── errorHandler.js       # 404 and global error handler
 │   ├── rateLimiter.js        # Rate limiting middleware
 │   └── requestLogger.js      # HTTP request logging
 │
@@ -119,7 +123,7 @@ node-web-app/
 │   ├── css/main.css          # Custom styles
 │   └── js/main.js            # Client-side JavaScript
 │
-├── docs/                     # Architecture & documentation
+├── docs/                     # Architecture and documentation
 │   ├── architecture.md       # Mermaid architecture diagrams
 │   ├── architecture.png      # Visual architecture diagram
 │   ├── assumptions.md        # Deployment assumptions
@@ -134,34 +138,34 @@ node-web-app/
 
 ---
 
-## ⚙️ Local Setup
+## Local Setup
 
 ### Prerequisites
 
-- Node.js 20+ ([Download](https://nodejs.org))
+- Node.js 20+
 - npm 9+
-- Docker & Docker Compose (for container deployment)
+- Docker and Docker Compose
 - Git
 
-### Clone & Install
+### Clone and Install
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/node-web-app.git
+# Clone the repository
+git clone https://github.com/Harshit-Evalutation/node-web-app.git
 cd node-web-app
 
-# 2. Install dependencies
+# Install dependencies
 npm ci
 
-# 3. Configure environment
+# Configure environment
 cp .env.example .env
-# Edit .env with your values (SESSION_SECRET is required)
+# Edit .env — SESSION_SECRET is required
 
-# 4. Start development server
+# Start development server
 npm run dev
 
-# 5. Open in browser
-open http://localhost:3000
+# Open in browser
+http://localhost:3000
 ```
 
 ### Environment Variables
@@ -171,13 +175,13 @@ open http://localhost:3000
 | `NODE_ENV` | `development` | Application environment |
 | `PORT` | `3000` | Server listening port |
 | `APP_NAME` | `DevOps Command Center` | App display name |
-| `SESSION_SECRET` | *(required)* | Session encryption key |
+| `SESSION_SECRET` | required | Session encryption key |
 | `LOG_LEVEL` | `info` | Winston log verbosity |
 | `RATE_LIMIT_MAX_REQUESTS` | `100` | API rate limit ceiling |
 
 ---
 
-## 🐳 Docker Compose Usage
+## Docker Compose Usage
 
 ```bash
 # Start the application container
@@ -189,7 +193,7 @@ docker compose --profile with-nginx up -d
 # View live logs
 docker compose logs -f app
 
-# Check container health status
+# Check container status
 docker compose ps
 
 # Stop all services
@@ -198,41 +202,38 @@ docker compose down
 # Stop and remove volumes
 docker compose down -v
 
-# Rebuild after code changes
+# Rebuild the image
 docker compose up -d --build
 ```
 
 ### Health Check
 
 ```bash
-# Application health endpoint
 curl http://localhost:3000/health
-
-# Detailed health info
 curl http://localhost:3000/health/detailed
 ```
 
 ---
 
-## ☁️ Deployment Process
+## Deployment Process
 
-Full step-by-step AWS deployment is documented in **[Deployment.md](Deployment.md)**.
+The full deployment procedure is documented in [Deployment.md](Deployment.md).
 
-### Quick Summary
+### Summary
 
-1. Launch **AWS EC2** t3.medium (Ubuntu 22.04 LTS)
-2. Open Security Groups: ports **22, 80, 443**
-3. Install **Docker** and **Docker Compose**
-4. Clone repo and configure `.env`
-5. Deploy with `docker compose up -d`
-6. Install **Nginx** as reverse proxy
-7. Point DNS `node-app.tryagentikai.com` → EC2 Public IP
-8. Run **Certbot** for Let's Encrypt SSL certificate
+1. Launch AWS EC2 t3.medium instance running Ubuntu 22.04 LTS
+2. Open Security Group ports 22, 80, and 443
+3. Install Docker and Docker Compose
+4. Clone the repository and create `.env` from `.env.example`
+5. Start the container with `docker compose up -d`
+6. Install Nginx and configure it as a reverse proxy to port 3000
+7. Point the DNS A record for `node-app.tryagentikai.com` to the EC2 public IP
+8. Run Certbot to obtain a Let's Encrypt certificate
 9. Verify HTTPS at `https://node-app.tryagentikai.com`
 
 ---
 
-## 🔒 HTTPS Configuration
+## HTTPS Configuration
 
 ```bash
 # Install Certbot
@@ -241,89 +242,87 @@ sudo apt install -y certbot python3-certbot-nginx
 # Obtain SSL certificate
 sudo certbot --nginx -d node-app.tryagentikai.com
 
-# Test auto-renewal
+# Test certificate auto-renewal
 sudo certbot renew --dry-run
 
 # Verify HTTPS
 curl -I https://node-app.tryagentikai.com
 ```
 
-Certbot automatically configures Nginx with SSL and sets up a systemd timer for certificate auto-renewal every 60 days.
+Certbot configures Nginx with SSL automatically and registers a systemd timer for certificate renewal.
 
 ---
 
-## 🔄 CI/CD Workflow
+## CI/CD Workflow
 
-The GitHub Actions pipeline (`.github/workflows/deploy.yml`) triggers on every push to `main`:
+The GitHub Actions pipeline defined in `.github/workflows/deploy.yml` runs on every push to `main`:
 
 ```
 Push to main
-    │
-    ▼
-┌─────────────────────────────────────────┐
-│           CI Validation Pipeline        │
-│                                         │
-│  1. Checkout repository                 │
-│  2. Setup Node.js 20                    │
-│  3. npm ci (install dependencies)       │
-│  4. npm audit --audit-level=high        │
-│  5. docker compose config (validate)    │
-│  6. docker build (build image)          │
-│  7. docker compose up -d               │
-│  8. sleep 10 (wait for startup)         │
-│  9. curl localhost (smoke test)         │
-│  10. docker compose down (cleanup)      │
-│  11. Print deployment summary           │
-└─────────────────────────────────────────┘
+    |
+    v
++------------------------------------------+
+|         CI Validation Pipeline           |
+|                                          |
+|  1. Checkout repository                  |
+|  2. Setup Node.js 20                     |
+|  3. npm ci                               |
+|  4. npm audit --audit-level=high         |
+|  5. docker compose config                |
+|  6. docker build                         |
+|  7. docker compose up -d                 |
+|  8. sleep 10                             |
+|  9. curl localhost (smoke test)          |
+| 10. docker compose down                  |
+| 11. Print deployment summary             |
++------------------------------------------+
 ```
 
 ---
 
-## ✅ Verification Commands
+## Verification Commands
 
 ```bash
-# 1. Check HTTPS is working
+# Check HTTPS is working
 curl -I https://node-app.tryagentikai.com
 
-# 2. Verify SSL certificate
+# Verify SSL certificate dates
 echo | openssl s_client -connect node-app.tryagentikai.com:443 2>/dev/null | openssl x509 -noout -dates
 
-# 3. DNS resolution
+# DNS resolution
 nslookup node-app.tryagentikai.com
 dig node-app.tryagentikai.com
 
-# 4. Docker containers running
+# Docker status
 docker ps
 docker compose ps
 
-# 5. Application health
+# Application health
 curl https://node-app.tryagentikai.com/health
 
-# 6. Nginx status
+# Nginx status
 sudo systemctl status nginx
 
-# 7. Certificate expiry
+# Certificate info
 sudo certbot certificates
 
-# 8. Container logs
+# Container logs
 docker compose logs -f app --tail=50
 ```
 
 ---
 
-## 🌐 Public URLs
+## Public URLs
 
-| URL | Description |
-|-----|-------------|
-| `https://node-app.tryagentikai.com` | Main application (HTTPS) |
-| `https://node-app.tryagentikai.com/health` | Health check endpoint |
-| `https://node-app.tryagentikai.com/health/detailed` | Detailed system info |
-| `https://node-app.tryagentikai.com/api/stats` | API stats endpoint |
-| `http://node-app.tryagentikai.com` | HTTP (auto-redirects to HTTPS) |
+| Endpoint | URL |
+|----------|-----|
+| Production | https://node-app.tryagentikai.com |
+| API | https://node-app.tryagentikai.com/api/stats |
+| EC2 Direct | http://\<public-ip\>:3000 |
 
 ---
 
-## 📸 Screenshots
+## Screenshots
 
 | # | Screenshot | Description |
 |---|-----------|-------------|
@@ -338,38 +337,37 @@ docker compose logs -f app --tail=50
 
 ---
 
-## ⚡ Challenges
+## Challenges
 
-Detailed challenges documented in **[Challenges.md](Challenges.md)**:
+Deployment issues are documented in [Challenges.md](Challenges.md):
 
-1. **DNS Propagation Delay** — Domain took 45+ minutes to resolve globally
-2. **Certbot Validation Failure** — Port 80 blocked by security group rules
-3. **Docker Container Startup Issue** — Missing SESSION_SECRET caused crash loop
-4. **Nginx 502 Bad Gateway** — upstream container not yet healthy
-
----
-
-## 🚀 Future Improvements
-
-- [ ] Implement Prometheus + Grafana metrics stack
-- [ ] Add PostgreSQL for persistent data storage
-- [ ] Set up AWS CloudWatch log aggregation
-- [ ] Configure AWS ALB with auto-scaling
-- [ ] Add Slack/PagerDuty incident notifications
-- [ ] Implement JWT-based authentication
-- [ ] Add WebSocket support for real-time updates
-- [ ] Blue-green deployment strategy with zero downtime
-- [ ] Terraform infrastructure-as-code for EC2 provisioning
-- [ ] Multi-region deployment with Route 53 failover
+1. **DNS Propagation Delay** — Domain took approximately 45 minutes to resolve globally
+2. **Certbot Validation Failure** — Port 80 was blocked by the EC2 Security Group
+3. **Docker Container Startup Issue** — Missing SESSION_SECRET caused a restart loop
+4. **Nginx 502 Bad Gateway** — Nginx received traffic before the container was healthy
 
 ---
 
-## 📚 Documentation Links
+## Future Improvements
+
+- Add Prometheus and Grafana for metrics collection
+- Integrate PostgreSQL for persistent data storage
+- Configure AWS CloudWatch for log aggregation
+- Set up an AWS ALB with auto-scaling
+- Add Slack or PagerDuty notifications for incidents
+- Implement JWT-based authentication
+- Add WebSocket support for real-time dashboard updates
+- Use Terraform for infrastructure provisioning
+- Configure blue-green deployments for zero-downtime releases
+
+---
+
+## Documentation Links
 
 | Document | Description |
 |----------|-------------|
-| [Deployment.md](Deployment.md) | Full AWS EC2 deployment guide |
-| [Challenges.md](Challenges.md) | Deployment issues & solutions |
+| [Deployment.md](Deployment.md) | AWS EC2 deployment guide |
+| [Challenges.md](Challenges.md) | Deployment issues and solutions |
 | [docs/architecture.md](docs/architecture.md) | System architecture diagrams |
 | [docs/assumptions.md](docs/assumptions.md) | Deployment assumptions |
 | [docs/evaluation_checklist.md](docs/evaluation_checklist.md) | Internship evaluation checklist |
@@ -378,6 +376,4 @@ Detailed challenges documented in **[Challenges.md](Challenges.md)**:
 
 ---
 
-<div align="center">
-Built with ❤️ for modern DevOps teams | OpsCenter Dashboard v1.0.0
-</div>
+*OpsCenter Dashboard v1.0.0*
